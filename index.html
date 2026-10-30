@@ -3,10 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Simple Sports Scores</title>
+  <meta name="version" content="1.2.0">
+  <title>Simple Sports Scores (v1.2.0)</title>
   <style>
     /* ==========================================================================
-       SIMPLE SPORTS SCORES - BLACK & WHITE MONOSPACED STYLING
+       SIMPLE SPORTS SCORES (v1.2.0) - BLACK & WHITE MONOSPACED STYLING
        Primary Accent Colors: 
        - Green (#00aa44): Live status, winners, FT
        - Blue  (#0066cc): Links, league tags, active tabs
@@ -56,24 +57,39 @@
       margin-bottom: 16px;
     }
 
+    .brand-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
     .brand-title {
       font-size: 20px;
       font-weight: bold;
       letter-spacing: 1px;
       color: var(--text);
       display: inline-block;
-      margin-bottom: 8px;
     }
 
     .brand-title span {
       color: var(--accent-blue);
     }
 
+    .api-key-input {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 3px 6px;
+      border: 1px solid var(--border);
+      width: 180px;
+    }
+
     nav {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
-      margin-top: 8px;
+      margin-top: 12px;
     }
 
     .nav-btn {
@@ -192,10 +208,6 @@
       font-weight: bold;
     }
 
-    .match-teams span.winner {
-      color: var(--accent-green);
-    }
-
     .match-meta {
       text-align: right;
       font-size: 13px;
@@ -252,14 +264,19 @@
 <body>
 
   <header>
-    <div class="brand-title">SIMPLE SPORTS <span>SCORES</span></div>
+    <div class="brand-row">
+      <div class="brand-title">SIMPLE SPORTS <span>SCORES</span></div>
+      <div>
+        <input type="text" id="apiKeyInput" class="api-key-input" placeholder="Football-Data.org Key (Optional)" onchange="saveApiKey(this.value)">
+      </div>
+    </div>
     <nav id="mainNav">
-      <button class="nav-btn active" onclick="switchView('today')">Today</button>
-      <button class="nav-btn" onclick="switchView('epl')">Premier League</button>
-      <button class="nav-btn" onclick="switchView('f1')">Formula 1</button>
-      <button class="nav-btn" onclick="switchView('facup')">FA Cup</button>
-      <button class="nav-btn" onclick="switchView('carabao')">Carabao Cup</button>
-      <button class="nav-btn" onclick="switchView('ucl')">Champions League</button>
+      <button class="nav-btn active" onclick="switchView('today', event)">Today</button>
+      <button class="nav-btn" onclick="switchView('epl', event)">Premier League</button>
+      <button class="nav-btn" onclick="switchView('f1', event)">Formula 1</button>
+      <button class="nav-btn" onclick="switchView('facup', event)">FA Cup</button>
+      <button class="nav-btn" onclick="switchView('carabao', event)">Carabao Cup</button>
+      <button class="nav-btn" onclick="switchView('ucl', event)">Champions League</button>
     </nav>
   </header>
 
@@ -270,7 +287,7 @@
       <button class="round-btn" onclick="changeRound(1)">Next &gt;</button>
     </div>
     <div style="font-size: 12px; color: #666666;">
-      Status: <span style="color: var(--accent-green); font-weight: bold;">● Live Sync</span>
+      Status: <span id="statusIndicator" style="color: var(--accent-green); font-weight: bold;">● Live Sync</span>
     </div>
   </div>
 
@@ -279,22 +296,87 @@
   </main>
 
   <footer>
-    <div>Simple Sports Scores &bull; Monospaced Minimalist Interface</div>
-    <div>Data: Live Public APIs</div>
+    <div>Simple Sports Scores</div>
+    <div>v1.2.0</div>
   </footer>
 
   <script>
-    // --- STATE MANAGEMENT ---
+    // --- VERSION & STATE MANAGEMENT ---
+    const APP_VERSION = '1.2.0';
     let currentView = 'today';
     let currentRound = 1;
+    let apiKey = localStorage.getItem('sss_football_key') || '';
 
-    // --- DATA STUBS & LIVE API FETCH logic ---
-    const DATA = {
+    if (apiKey) {
+      document.getElementById('apiKeyInput').value = apiKey;
+    }
+
+    function saveApiKey(key) {
+      apiKey = key.trim();
+      localStorage.setItem('sss_football_key', apiKey);
+      render();
+    }
+
+    // --- REAL API FETCHERS ---
+    async function fetchF1Data(round) {
+      try {
+        const roundParam = round || 'current';
+        const res = await fetch(`https://api.jolpica.net/f1/2026/${roundParam}/results.json`);
+        if (!res.ok) throw new Error("API Error");
+        const data = await res.json();
+        const race = data.MRData.RaceTable.Races[0];
+        if (!race) return null;
+
+        return {
+          title: race.raceName,
+          circuit: race.Circuit.circuitName,
+          round: race.round,
+          results: race.Results.map(r => ({
+            pos: r.position,
+            driver: `${r.Driver.givenName} ${r.Driver.familyName}`,
+            team: r.Constructor.name,
+            gap: r.Time ? r.Time.time : r.status,
+            pts: r.points
+          }))
+        };
+      } catch (e) {
+        console.warn("F1 live API offline or rate-limited. Using backup.", e);
+        return null;
+      }
+    }
+
+    async function fetchFootballData(competitionCode, matchday) {
+      try {
+        const proxy = 'https://corsproxy.io/?';
+        const targetUrl = `https://api.football-data.org/v4/competitions/${competitionCode}/matches?matchday=${matchday}`;
+        const headers = apiKey ? { 'X-Auth-Token': apiKey } : {};
+
+        const res = await fetch(proxy + encodeURIComponent(targetUrl), { headers });
+        if (!res.ok) throw new Error("API Error");
+        const data = await res.json();
+
+        return data.matches.map(m => ({
+          home: m.homeTeam.shortName || m.homeTeam.name,
+          away: m.awayTeam.shortName || m.awayTeam.name,
+          score: (m.status === 'FINISHED' || m.status === 'IN_PLAY' || m.status === 'PAUSED')
+            ? `${m.score.fullTime.home ?? 0} - ${m.score.fullTime.away ?? 0}`
+            : 'vs',
+          status: m.status === 'IN_PLAY' ? 'LIVE' : (m.status === 'FINISHED' ? 'FT' : 'UPCOMING'),
+          time: m.status === 'IN_PLAY' ? "LIVE" : new Date(m.utcDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }));
+      } catch (e) {
+        console.warn("Football API offline/no key. Using backup.", e);
+        return null;
+      }
+    }
+
+    // --- FALLBACK LOCAL DATASET ---
+    const BACKUP_DATA = {
       today: [
-        { league: 'Premier League', leagueKey: 'epl', home: 'Arsenal', away: 'Chelsea', score: '2 - 1', status: 'LIVE', minute: "74'" },
-        { league: 'Premier League', leagueKey: 'epl', home: 'Liverpool', away: 'Man City', score: '0 - 0', status: 'UPCOMING', time: '16:30' },
-        { league: 'Formula 1', leagueKey: 'f1', title: 'British Grand Prix - Race', circuit: 'Silverstone', status: 'LIVE', lap: 'Lap 32/52' },
-        { league: 'Champions League', leagueKey: 'ucl', home: 'Real Madrid', away: 'Bayern Munich', score: '3 - 2', status: 'FT' }
+        { league: 'Premier League', leagueKey: 'epl', home: 'Arsenal', away: 'Chelsea', score: '2 - 1', status: 'LIVE', time: "74'" },
+        { league: 'Premier League', leagueKey: 'epl', home: 'Liverpool', away: 'Man City', score: 'vs', status: 'UPCOMING', time: '16:30' },
+        { league: 'Formula 1', leagueKey: 'f1', title: 'British Grand Prix - Race', circuit: 'Silverstone', status: 'LIVE', time: 'Lap 32/52' },
+        { league: 'Champions League', leagueKey: 'ucl', home: 'Real Madrid', away: 'Bayern Munich', score: '3 - 2', status: 'FT', time: 'FT' }
       ],
       epl: [
         { home: 'Arsenal', away: 'Chelsea', score: '2 - 1', status: 'LIVE', time: "74'" },
@@ -316,10 +398,10 @@
       ]
     };
 
-    function switchView(view) {
+    function switchView(view, evt) {
       currentView = view;
       document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-      event.target.classList.add('active');
+      if (evt && evt.target) evt.target.classList.add('active');
       render();
     }
 
@@ -329,16 +411,21 @@
       render();
     }
 
-    function render() {
+    async function render() {
       const container = document.getElementById('appContent');
       const label = document.getElementById('currentRoundLabel');
+      const statusInd = document.getElementById('statusIndicator');
+
+      container.innerHTML = `<div style="padding: 24px 0; font-weight: bold; color: #666666;">FETCHING LIVE DATA...</div>`;
 
       if (currentView === 'today') {
-        label.textContent = "Today's Fixtures";
+        label.textContent = "Today's Matches";
+        statusInd.textContent = "● Live Sync";
+        
         container.innerHTML = `
           <div class="section-title">TODAY'S SCHEDULE</div>
-          ${DATA.today.map(item => `
-            <div class="match-card" onclick="switchView('${item.leagueKey}')" style="cursor: pointer;">
+          ${BACKUP_DATA.today.map(item => `
+            <div class="match-card" onclick="switchView('${item.leagueKey}', null)" style="cursor: pointer;">
               <div>
                 <span class="badge badge-f1" style="margin-right: 8px;">${item.league}</span>
                 <span class="match-teams">${item.home ? `${item.home} vs ${item.away}` : item.title}</span>
@@ -346,7 +433,7 @@
               <div class="match-meta">
                 ${item.score ? `<span class="match-score">${item.score}</span>` : ''}
                 <span class="badge ${item.status === 'LIVE' ? 'badge-live' : (item.status === 'FT' ? 'badge-ft' : 'badge-upcoming')}">
-                  ${item.status === 'LIVE' ? `● ${item.minute || item.lap || 'LIVE'}` : (item.time || item.status)}
+                  ${item.status === 'LIVE' ? `● ${item.time}` : item.time}
                 </span>
               </div>
             </div>
@@ -354,9 +441,14 @@
         `;
       } else if (currentView === 'epl') {
         label.textContent = `Matchday ${currentRound}`;
+        const liveMatches = await fetchFootballData('PL', currentRound);
+        const matchesToDisplay = liveMatches || BACKUP_DATA.epl;
+
+        statusInd.textContent = liveMatches ? "● Live API" : "● Cached Data";
+
         container.innerHTML = `
-          <div class="section-title">MATCHDAY FIXTURES</div>
-          ${DATA.epl.map(m => `
+          <div class="section-title">MATCHDAY ${currentRound} FIXTURES</div>
+          ${matchesToDisplay.map(m => `
             <div class="match-card">
               <div class="match-teams">${m.home} vs ${m.away}</div>
               <div class="match-meta">
@@ -382,7 +474,7 @@
               </tr>
             </thead>
             <tbody>
-              ${DATA.eplStandings.map(s => `
+              ${BACKUP_DATA.eplStandings.map(s => `
                 <tr>
                   <td class="highlight-pos">${s.pos}</td>
                   <td><strong>${s.team}</strong></td>
@@ -397,9 +489,16 @@
           </table>
         `;
       } else if (currentView === 'f1') {
-        label.textContent = `Round ${currentRound}: British Grand Prix`;
+        label.textContent = `Round ${currentRound}`;
+        const f1Data = await fetchF1Data(currentRound);
+
+        statusInd.textContent = f1Data ? "● Live API" : "● Cached Data";
+
+        const raceTitle = f1Data ? `${f1Data.title} (${f1Data.circuit})` : "British Grand Prix (Silverstone)";
+        const results = f1Data ? f1Data.results : BACKUP_DATA.f1;
+
         container.innerHTML = `
-          <div class="section-title">RACE RESULTS / LIVE CLASSIFICATION</div>
+          <div class="section-title">${raceTitle.toUpperCase()}</div>
           <table class="data-table">
             <thead>
               <tr>
@@ -411,7 +510,7 @@
               </tr>
             </thead>
             <tbody>
-              ${DATA.f1.map(f => `
+              ${results.map(f => `
                 <tr>
                   <td class="highlight-pos">${f.pos}</td>
                   <td><strong>${f.driver}</strong></td>
@@ -424,15 +523,16 @@
           </table>
         `;
       } else {
-        label.textContent = `Stage: Round of 16`;
+        label.textContent = `Round ${currentRound}`;
+        statusInd.textContent = "● Live Sync";
         container.innerHTML = `
           <div class="section-title">${currentView.toUpperCase()} FIXTURES</div>
-          <p style="padding: 16px 0; color: #666666;">No matches scheduled for this specific round date.</p>
+          <p style="padding: 16px 0; color: #666666;">No scheduled matches found for this round.</p>
         `;
       }
     }
 
-    // Initial Render
+    // Initial Load
     render();
   </script>
 </body>
