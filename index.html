@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="version" content="1.3.0">
-  <title>Simple Sports Scores (v1.3.0)</title>
+  <meta name="version" content="1.4.0">
+  <title>Simple Sports Scores (v1.4.0)</title>
   <style>
     /* ==========================================================================
-       SIMPLE SPORTS SCORES (v1.3.0) - BLACK & WHITE MONOSPACED STYLING
+       SIMPLE SPORTS SCORES (v1.4.0) - BLACK & WHITE MONOSPACED STYLING
        Primary Accent Colors: 
        - Green (#00aa44): Live status, winners, FT
        - Blue  (#0066cc): Links, league tags, active tabs
@@ -77,12 +77,18 @@
       color: var(--accent-blue);
     }
 
+    .api-key-container {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
     .api-key-input {
       font-family: var(--font-mono);
       font-size: 11px;
-      padding: 3px 6px;
-      border: 1px solid var(--border);
-      width: 220px;
+      padding: 4px 8px;
+      border: 1px solid var(--border-dark);
+      width: 240px;
     }
 
     nav {
@@ -266,8 +272,8 @@
   <header>
     <div class="brand-row">
       <div class="brand-title">SIMPLE SPORTS <span>SCORES</span></div>
-      <div>
-        <input type="text" id="apiKeyInput" class="api-key-input" placeholder="Football-Data Key (Optional)" onchange="saveApiKey(this.value)">
+      <div class="api-key-container">
+        <input type="text" id="apiKeyInput" class="api-key-input" placeholder="Football-Data Key" onchange="saveApiKey(this.value)">
       </div>
     </div>
     <nav id="mainNav">
@@ -297,14 +303,14 @@
 
   <footer>
     <div>Simple Sports Scores</div>
-    <div>v1.3.0</div>
+    <div>v1.4.0</div>
   </footer>
 
   <script>
     // --- VERSION & STATE MANAGEMENT ---
-    const APP_VERSION = '1.3.0';
+    const APP_VERSION = '1.4.0';
     let currentView = 'today';
-    let currentRound = 0; // 0 = current/latest
+    let currentRound = 0; // 0 = default/current matchday
     let apiKey = localStorage.getItem('sss_football_key') || '';
 
     if (apiKey) {
@@ -317,10 +323,9 @@
       render();
     }
 
-    // --- REAL API FETCHERS WITH CORS FALLBACKS ---
+    // --- REAL F1 API FETCHERS (NO API KEY NEEDED) ---
     async function fetchF1RaceResults(roundOffset) {
       try {
-        // Fetch current season schedule or specific round
         const endpoint = roundOffset === 0 
           ? 'https://api.jolpica.net/f1/current/last/results.json' 
           : `https://api.jolpica.net/f1/current/${roundOffset}/results.json`;
@@ -378,12 +383,16 @@
       }
     }
 
+    // --- FOOTBALL-DATA.ORG API FETCHERS (USES SAFE USER KEY) ---
     async function fetchFootballMatches(compCode, matchday) {
-      if (!apiKey) return null; // Requires key for direct access
+      if (!apiKey) return null;
 
       try {
         const proxy = 'https://corsproxy.io/?';
-        const targetUrl = `https://api.football-data.org/v4/competitions/${compCode}/matches` + (matchday ? `?matchday=${matchday}` : '');
+        let targetUrl = `https://api.football-data.org/v4/competitions/${compCode}/matches`;
+        if (matchday && matchday > 0) {
+          targetUrl += `?matchday=${matchday}`;
+        }
         
         const res = await fetch(proxy + encodeURIComponent(targetUrl), {
           headers: { 'X-Auth-Token': apiKey }
@@ -392,7 +401,7 @@
         const data = await res.json();
 
         return {
-          matchday: data.filters.matchday || matchday,
+          matchday: data.filters.matchday || matchday || 1,
           matches: data.matches.map(m => ({
             home: m.homeTeam.shortName || m.homeTeam.name,
             away: m.awayTeam.shortName || m.awayTeam.name,
@@ -422,7 +431,8 @@
         });
         if (!res.ok) throw new Error("Standings API Error");
         const data = await res.json();
-        const table = data.standings[0].table;
+        const table = data.standings[0]?.table;
+        if (!table) return null;
 
         return table.map(t => ({
           pos: t.position,
@@ -444,7 +454,7 @@
 
     function switchView(view, evt) {
       currentView = view;
-      currentRound = 0; // Reset round offset
+      currentRound = 0;
       document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
       if (evt && evt.target) evt.target.classList.add('active');
       render();
@@ -460,17 +470,16 @@
       const label = document.getElementById('currentRoundLabel');
       const statusInd = document.getElementById('statusIndicator');
 
-      container.innerHTML = `<div style="padding: 24px 0; font-weight: bold; color: #666666;">LOADING REAL-TIME DATA...</div>`;
+      container.innerHTML = `<div style="padding: 24px 0; font-weight: bold; color: #666666;">FETCHING LIVE DATA...</div>`;
 
       if (currentView === 'today') {
         label.textContent = "Today's Schedule";
         statusInd.textContent = "● Live Sync";
         
-        // Fetch latest F1 race info
         const f1Data = await fetchF1RaceResults(0);
         
         container.innerHTML = `
-          <div class="section-title">LATEST / TODAY'S EVENTS</div>
+          <div class="section-title">LATEST & TODAY'S EVENTS</div>
           ${f1Data ? `
             <div class="match-card" onclick="switchView('f1', null)" style="cursor: pointer;">
               <div>
@@ -486,7 +495,7 @@
           <div class="match-card" onclick="switchView('epl', null)" style="cursor: pointer;">
             <div>
               <span class="badge badge-live" style="margin-right: 8px;">PREMIER LEAGUE</span>
-              <span class="match-teams">Select Premier League Tab for Matchday Fixtures</span>
+              <span class="match-teams">Select Premier League tab to view live matchday fixtures</span>
             </div>
             <div class="match-meta">
               <span class="badge badge-upcoming">View Table & Scores</span>
@@ -558,22 +567,31 @@
             </table>
           ` : ''}
         `;
-      } else if (currentView === 'epl') {
-        const liveMatches = await fetchFootballMatches('PL', currentRound === 0 ? null : currentRound);
-        const standings = await fetchFootballStandings('PL');
+      } else {
+        // Football Leagues Routing: EPL, Champions League, FA Cup, Carabao Cup
+        const compMap = {
+          epl: 'PL',
+          ucl: 'CL',
+          facup: 'FAC',
+          carabao: 'ELC'
+        };
+        const compCode = compMap[currentView] || 'PL';
+        
+        const liveMatches = await fetchFootballMatches(compCode, currentRound === 0 ? null : currentRound);
+        const standings = compCode === 'PL' || compCode === 'CL' ? await fetchFootballStandings(compCode) : null;
 
-        statusInd.textContent = liveMatches ? "● Live API" : (apiKey ? "● Rate Limited" : "● Key Required for Football");
-        label.textContent = liveMatches ? `Matchday ${liveMatches.matchday}` : "Premier League";
+        statusInd.textContent = apiKey ? (liveMatches ? "● Football-Data API Active" : "● Syncing...") : "● API Key Needed";
+        label.textContent = liveMatches ? `Matchday ${liveMatches.matchday}` : `${currentView.toUpperCase()}`;
 
         container.innerHTML = `
           ${!apiKey ? `
             <div style="background: #fff8e1; border: 1px solid var(--border-dark); padding: 12px; margin-bottom: 16px; font-size: 12px;">
-              <strong>Note:</strong> Football-Data.org requires a free API key for live Premier League fixtures and tables. Paste your free key into the input box in the top right header to activate full live data.
+              <strong>Key Required:</strong> Paste your free API key from Football-Data.org in the top header box to enable live fixtures, scores, and standings for ${currentView.toUpperCase()}.
             </div>
           ` : ''}
 
           ${liveMatches ? `
-            <div class="section-title">MATCHDAY ${liveMatches.matchday} FIXTURES</div>
+            <div class="section-title">${currentView.toUpperCase()} FIXTURES (MATCHDAY ${liveMatches.matchday})</div>
             ${liveMatches.matches.map(m => `
               <div class="match-card">
                 <div class="match-teams">${m.home} vs ${m.away}</div>
@@ -588,7 +606,7 @@
           ` : ''}
 
           ${standings ? `
-            <div class="section-title">LEAGUE TABLE</div>
+            <div class="section-title">${currentView.toUpperCase()} STANDINGS TABLE</div>
             <table class="data-table">
               <thead>
                 <tr>
@@ -618,13 +636,6 @@
               </tbody>
             </table>
           ` : ''}
-        `;
-      } else {
-        label.textContent = `Cup Round`;
-        statusInd.textContent = "● Active";
-        container.innerHTML = `
-          <div class="section-title">${currentView.toUpperCase()} FIXTURES</div>
-          <p style="padding: 16px 0; color: #666666;">Enter a free Football-Data.org key in the header to sync domestic and European cup rounds.</p>
         `;
       }
     }
