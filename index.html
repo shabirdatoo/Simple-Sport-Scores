@@ -3,16 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="version" content="1.4.0">
-  <title>Simple Sports Scores (v1.4.0)</title>
+  <meta name="version" content="1.5.0">
+  <title>Simple Sports Scores (v1.5.0)</title>
   <style>
-    /* ==========================================================================
-       SIMPLE SPORTS SCORES (v1.4.0) - BLACK & WHITE MONOSPACED STYLING
-       Primary Accent Colors: 
-       - Green (#00aa44): Live status, winners, FT
-       - Blue  (#0066cc): Links, league tags, active tabs
-       - Red   (#cc0000): F1 indicators, badges, highlights
-       ========================================================================== */
     :root {
       --bg: #ffffff;
       --text: #111111;
@@ -24,11 +17,7 @@
       --font-mono: 'Courier New', Courier, monospace;
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       background-color: var(--bg);
@@ -41,16 +30,6 @@
       margin: 0 auto;
     }
 
-    a {
-      color: var(--accent-blue);
-      text-decoration: none;
-    }
-
-    a:hover {
-      text-decoration: underline;
-    }
-
-    /* --- HEADER & NAVIGATION --- */
     header {
       border-bottom: 2px solid var(--border-dark);
       padding-bottom: 12px;
@@ -69,34 +48,19 @@
       font-size: 20px;
       font-weight: bold;
       letter-spacing: 1px;
-      color: var(--text);
-      display: inline-block;
     }
 
-    .brand-title span {
-      color: var(--accent-blue);
-    }
+    .brand-title span { color: var(--accent-blue); }
 
-    .api-key-container {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .api-key-input {
+    .proxy-input {
       font-family: var(--font-mono);
       font-size: 11px;
       padding: 4px 8px;
       border: 1px solid var(--border-dark);
-      width: 240px;
+      width: 260px;
     }
 
-    nav {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 12px;
-    }
+    nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 
     .nav-btn {
       background: none;
@@ -110,17 +74,9 @@
       font-weight: bold;
     }
 
-    .nav-btn:hover {
-      background: var(--text);
-      color: var(--bg);
-    }
+    .nav-btn:hover { background: var(--text); color: var(--bg); }
+    .nav-btn.active { background: var(--border-dark); color: #ffffff; }
 
-    .nav-btn.active {
-      background: var(--border-dark);
-      color: #ffffff;
-    }
-
-    /* --- SUB NAVIGATION & CONTROLS --- */
     .controls-bar {
       display: flex;
       justify-content: space-between;
@@ -132,12 +88,7 @@
       gap: 8px;
     }
 
-    .round-nav {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-weight: bold;
-    }
+    .round-nav { display: flex; align-items: center; gap: 12px; font-weight: bold; }
 
     .round-btn {
       background: none;
@@ -147,42 +98,19 @@
       cursor: pointer;
     }
 
-    .round-btn:hover {
-      border-color: var(--border-dark);
-      background: #f0f0f0;
-    }
-
-    /* --- STATUS BADGES --- */
     .badge {
       font-size: 11px;
       font-weight: bold;
       padding: 1px 5px;
-      border-radius: 2px;
       display: inline-block;
       text-transform: uppercase;
     }
 
-    .badge-live {
-      background-color: var(--accent-green);
-      color: #ffffff;
-    }
+    .badge-live { background-color: var(--accent-green); color: #ffffff; }
+    .badge-ft { border: 1px solid var(--border-dark); color: var(--text); }
+    .badge-upcoming { border: 1px dashed var(--border); color: #666666; }
+    .badge-f1 { background-color: var(--accent-red); color: #ffffff; }
 
-    .badge-ft {
-      border: 1px solid var(--border-dark);
-      color: var(--text);
-    }
-
-    .badge-upcoming {
-      border: 1px dashed var(--border);
-      color: #666666;
-    }
-
-    .badge-f1 {
-      background-color: var(--accent-red);
-      color: #ffffff;
-    }
-
-    /* --- MATCH / EVENT CARDS --- */
     .section-title {
       font-size: 14px;
       font-weight: bold;
@@ -191,9 +119,6 @@
       margin-top: 20px;
       margin-bottom: 12px;
       text-transform: uppercase;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
     }
 
     .match-card {
@@ -203,59 +128,19 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      transition: border-color 0.15s;
     }
 
-    .match-card:hover {
-      border-color: var(--border-dark);
-    }
+    .match-teams { font-weight: bold; }
+    .match-meta { text-align: right; font-size: 13px; }
+    .match-score { font-weight: bold; margin-right: 8px; }
 
-    .match-teams {
-      font-weight: bold;
-    }
-
-    .match-meta {
-      text-align: right;
-      font-size: 13px;
-    }
-
-    .match-score {
-      font-weight: bold;
-      margin-right: 8px;
-    }
-
-    /* --- STANDINGS TABLES --- */
-    .data-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 12px;
-      font-size: 13px;
-    }
-
-    .data-table th, .data-table td {
-      border-bottom: 1px solid var(--border);
-      padding: 6px 8px;
-      text-align: left;
-    }
-
-    .data-table th {
-      border-bottom: 2px solid var(--border-dark);
-      font-weight: bold;
-    }
-
-    .data-table tr:hover td {
-      background-color: #f8f8f8;
-    }
-
+    .data-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+    .data-table th, .data-table td { border-bottom: 1px solid var(--border); padding: 6px 8px; text-align: left; }
+    .data-table th { border-bottom: 2px solid var(--border-dark); font-weight: bold; }
     .text-center { text-align: center; }
     .text-right { text-align: right; }
+    .highlight-pos { color: var(--accent-blue); font-weight: bold; }
 
-    .highlight-pos {
-      color: var(--accent-blue);
-      font-weight: bold;
-    }
-
-    /* --- FOOTER --- */
     footer {
       border-top: 1px solid var(--border);
       margin-top: 32px;
@@ -272,8 +157,8 @@
   <header>
     <div class="brand-row">
       <div class="brand-title">SIMPLE SPORTS <span>SCORES</span></div>
-      <div class="api-key-container">
-        <input type="text" id="apiKeyInput" class="api-key-input" placeholder="Football-Data Key" onchange="saveApiKey(this.value)">
+      <div>
+        <input type="text" id="proxyUrlInput" class="proxy-input" placeholder="Cloudflare Worker URL" onchange="saveProxyUrl(this.value)">
       </div>
     </div>
     <nav id="mainNav">
@@ -293,170 +178,78 @@
       <button class="round-btn" onclick="changeRound(1)">Next &gt;</button>
     </div>
     <div style="font-size: 12px; color: #666666;">
-      Status: <span id="statusIndicator" style="color: var(--accent-green); font-weight: bold;">● Fetching...</span>
+      Status: <span id="statusIndicator" style="color: var(--accent-green); font-weight: bold;">● Active</span>
     </div>
   </div>
 
-  <main id="appContent">
-    <!-- Dynamic Content Loaded Here -->
-  </main>
+  <main id="appContent"></main>
 
   <footer>
     <div>Simple Sports Scores</div>
-    <div>v1.4.0</div>
+    <div>v1.5.0</div>
   </footer>
 
   <script>
-    // --- VERSION & STATE MANAGEMENT ---
-    const APP_VERSION = '1.4.0';
+    const APP_VERSION = '1.5.0';
     let currentView = 'today';
-    let currentRound = 0; // 0 = default/current matchday
-    let apiKey = localStorage.getItem('sss_football_key') || '';
+    let currentRound = 0;
+    let proxyUrl = localStorage.getItem('sss_proxy_url') || '';
 
-    if (apiKey) {
-      document.getElementById('apiKeyInput').value = apiKey;
+    if (proxyUrl) {
+      document.getElementById('proxyUrlInput').value = proxyUrl;
     }
 
-    function saveApiKey(key) {
-      apiKey = key.trim();
-      localStorage.setItem('sss_football_key', apiKey);
+    function saveProxyUrl(url) {
+      proxyUrl = url.trim().replace(/\/$/, "");
+      localStorage.setItem('sss_proxy_url', proxyUrl);
       render();
     }
 
-    // --- REAL F1 API FETCHERS (NO API KEY NEEDED) ---
-    async function fetchF1RaceResults(roundOffset) {
+    // --- F1 DIRECT API (NO PROXY NEEDED) ---
+    async function fetchF1Data() {
       try {
-        const endpoint = roundOffset === 0 
-          ? 'https://api.jolpica.net/f1/current/last/results.json' 
-          : `https://api.jolpica.net/f1/current/${roundOffset}/results.json`;
-
-        const res = await fetch(endpoint);
-        if (!res.ok) throw new Error("API Error");
+        const res = await fetch('https://api.jolpica.net/f1/current/last/results.json');
+        if (!res.ok) return null;
         const data = await res.json();
         const race = data.MRData.RaceTable.Races[0];
-        if (!race) return null;
-
         return {
-          season: race.season,
-          round: race.round,
-          raceName: race.raceName,
+          title: race.raceName,
           circuit: race.Circuit.circuitName,
-          date: race.date,
           results: race.Results.map(r => ({
             pos: r.position,
-            number: r.number,
             driver: `${r.Driver.givenName} ${r.Driver.familyName}`,
-            code: r.Driver.code || '',
             team: r.Constructor.name,
-            grid: r.grid,
-            laps: r.laps,
-            status: r.status,
             gap: r.Time ? r.Time.time : r.status,
             pts: r.points
           }))
         };
       } catch (e) {
-        console.warn("F1 Race Results API Error:", e);
         return null;
       }
     }
 
-    async function fetchF1DriverStandings() {
+    // --- FOOTBALL PROXY API ---
+    async function fetchFootballMatches(comp) {
+      if (!proxyUrl) return null;
       try {
-        const res = await fetch('https://api.jolpica.net/f1/current/driverStandings.json');
-        if (!res.ok) throw new Error("API Error");
+        const res = await fetch(`${proxyUrl}?comp=${comp}&type=matches`);
+        if (!res.ok) return null;
         const data = await res.json();
-        const standingsList = data.MRData.StandingsTable.StandingsLists[0];
-        if (!standingsList) return null;
-
-        return standingsList.DriverStandings.map(s => ({
-          pos: s.position,
-          driver: `${s.Driver.givenName} ${s.Driver.familyName}`,
-          code: s.Driver.code || '',
-          team: s.Constructors[0] ? s.Constructors[0].name : '',
-          wins: s.wins,
-          pts: s.points
+        return data.matches.map(m => ({
+          home: m.homeTeam.shortName || m.homeTeam.name,
+          away: m.awayTeam.shortName || m.awayTeam.name,
+          score: (m.status === 'FINISHED' || m.status === 'IN_PLAY') ? `${m.score.fullTime.home} - ${m.score.fullTime.away}` : 'vs',
+          status: m.status === 'IN_PLAY' ? 'LIVE' : (m.status === 'FINISHED' ? 'FT' : 'UPCOMING')
         }));
       } catch (e) {
-        console.warn("F1 Standings API Error:", e);
-        return null;
-      }
-    }
-
-    // --- FOOTBALL-DATA.ORG API FETCHERS (USES SAFE USER KEY) ---
-    async function fetchFootballMatches(compCode, matchday) {
-      if (!apiKey) return null;
-
-      try {
-        const proxy = 'https://corsproxy.io/?';
-        let targetUrl = `https://api.football-data.org/v4/competitions/${compCode}/matches`;
-        if (matchday && matchday > 0) {
-          targetUrl += `?matchday=${matchday}`;
-        }
-        
-        const res = await fetch(proxy + encodeURIComponent(targetUrl), {
-          headers: { 'X-Auth-Token': apiKey }
-        });
-        if (!res.ok) throw new Error("Football API Error");
-        const data = await res.json();
-
-        return {
-          matchday: data.filters.matchday || matchday || 1,
-          matches: data.matches.map(m => ({
-            home: m.homeTeam.shortName || m.homeTeam.name,
-            away: m.awayTeam.shortName || m.awayTeam.name,
-            score: (m.status === 'FINISHED' || m.status === 'IN_PLAY' || m.status === 'PAUSED')
-              ? `${m.score.fullTime.home ?? 0} - ${m.score.fullTime.away ?? 0}`
-              : 'vs',
-            status: m.status === 'IN_PLAY' ? 'LIVE' : (m.status === 'FINISHED' ? 'FT' : 'UPCOMING'),
-            time: m.status === 'IN_PLAY' ? "LIVE" : new Date(m.utcDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            utcDate: m.utcDate
-          }))
-        };
-      } catch (e) {
-        console.warn("Football API fetch failed:", e);
-        return null;
-      }
-    }
-
-    async function fetchFootballStandings(compCode) {
-      if (!apiKey) return null;
-
-      try {
-        const proxy = 'https://corsproxy.io/?';
-        const targetUrl = `https://api.football-data.org/v4/competitions/${compCode}/standings`;
-        
-        const res = await fetch(proxy + encodeURIComponent(targetUrl), {
-          headers: { 'X-Auth-Token': apiKey }
-        });
-        if (!res.ok) throw new Error("Standings API Error");
-        const data = await res.json();
-        const table = data.standings[0]?.table;
-        if (!table) return null;
-
-        return table.map(t => ({
-          pos: t.position,
-          team: t.team.shortName || t.team.name,
-          p: t.playedGames,
-          w: t.won,
-          d: t.draw,
-          l: t.lost,
-          gf: t.goalsFor,
-          ga: t.goalsAgainst,
-          gd: t.goalDifference,
-          pts: t.points
-        }));
-      } catch (e) {
-        console.warn("Football Standings fetch failed:", e);
         return null;
       }
     }
 
     function switchView(view, evt) {
       currentView = view;
-      currentRound = 0;
       document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-      if (evt && evt.target) evt.target.classList.add('active');
+      if (evt) evt.target.classList.add('active');
       render();
     }
 
@@ -470,177 +263,53 @@
       const label = document.getElementById('currentRoundLabel');
       const statusInd = document.getElementById('statusIndicator');
 
-      container.innerHTML = `<div style="padding: 24px 0; font-weight: bold; color: #666666;">FETCHING LIVE DATA...</div>`;
+      container.innerHTML = `<div style="padding: 24px 0; font-weight: bold; color: #666666;">SYNCING...</div>`;
 
-      if (currentView === 'today') {
-        label.textContent = "Today's Schedule";
-        statusInd.textContent = "● Live Sync";
+      if (currentView === 'f1') {
+        const f1 = await fetchF1Data();
+        label.textContent = "Latest Grand Prix";
+        statusInd.textContent = "● Jolpica F1 API";
         
-        const f1Data = await fetchF1RaceResults(0);
-        
-        container.innerHTML = `
-          <div class="section-title">LATEST & TODAY'S EVENTS</div>
-          ${f1Data ? `
-            <div class="match-card" onclick="switchView('f1', null)" style="cursor: pointer;">
-              <div>
-                <span class="badge badge-f1" style="margin-right: 8px;">FORMULA 1</span>
-                <span class="match-teams">${f1Data.raceName} (${f1Data.circuit})</span>
-              </div>
-              <div class="match-meta">
-                <span class="badge badge-ft">Winner: ${f1Data.results[0]?.driver || 'TBD'}</span>
-              </div>
-            </div>
-          ` : ''}
-
-          <div class="match-card" onclick="switchView('epl', null)" style="cursor: pointer;">
-            <div>
-              <span class="badge badge-live" style="margin-right: 8px;">PREMIER LEAGUE</span>
-              <span class="match-teams">Select Premier League tab to view live matchday fixtures</span>
-            </div>
-            <div class="match-meta">
-              <span class="badge badge-upcoming">View Table & Scores</span>
-            </div>
-          </div>
-        `;
-      } else if (currentView === 'f1') {
-        statusInd.textContent = "● Jolpica F1 Live API";
-        
-        const f1Race = await fetchF1RaceResults(currentRound === 0 ? 0 : currentRound);
-        const f1Standings = await fetchF1DriverStandings();
-
-        label.textContent = f1Race ? `Round ${f1Race.round}: ${f1Race.raceName}` : `Round ${currentRound || 'Latest'}`;
-
-        container.innerHTML = `
-          ${f1Race ? `
-            <div class="section-title">${f1Race.raceName.toUpperCase()} — ${f1Race.circuit.toUpperCase()} (${f1Race.date})</div>
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>POS</th>
-                  <th>DRIVER</th>
-                  <th>TEAM</th>
-                  <th class="text-center">GRID</th>
-                  <th class="text-center">LAPS</th>
-                  <th class="text-right">TIME / STATUS</th>
-                  <th class="text-right">PTS</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${f1Race.results.map(f => `
-                  <tr>
-                    <td class="highlight-pos">${f.pos}</td>
-                    <td><strong>${f.driver}</strong> ${f.code ? `(${f.code})` : ''}</td>
-                    <td>${f.team}</td>
-                    <td class="text-center">${f.grid}</td>
-                    <td class="text-center">${f.laps}</td>
-                    <td class="text-right">${f.gap}</td>
-                    <td class="text-right"><strong>${f.pts}</strong></td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          ` : `<p style="padding: 16px 0;">No race data found for this round.</p>`}
-
-          ${f1Standings ? `
-            <div class="section-title" style="margin-top: 32px;">DRIVERS CHAMPIONSHIP STANDINGS</div>
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>POS</th>
-                  <th>DRIVER</th>
-                  <th>CONSTRUCTOR</th>
-                  <th class="text-center">WINS</th>
-                  <th class="text-right">POINTS</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${f1Standings.map(s => `
-                  <tr>
-                    <td class="highlight-pos">${s.pos}</td>
-                    <td><strong>${s.driver}</strong></td>
-                    <td>${s.team}</td>
-                    <td class="text-center">${s.wins}</td>
-                    <td class="text-right"><strong>${s.pts}</strong></td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          ` : ''}
-        `;
+        container.innerHTML = f1 ? `
+          <div class="section-title">${f1.title.toUpperCase()} (${f1.circuit.toUpperCase()})</div>
+          <table class="data-table">
+            <thead><tr><th>POS</th><th>DRIVER</th><th>TEAM</th><th class="text-right">TIME</th><th class="text-right">PTS</th></tr></thead>
+            <tbody>
+              ${f1.results.map(r => `<tr><td class="highlight-pos">${r.pos}</td><td><strong>${r.driver}</strong></td><td>${r.team}</td><td class="text-right">${r.gap}</td><td class="text-right"><strong>${r.pts}</strong></td></tr>`).join('')}
+            </tbody>
+          </table>
+        ` : `<p style="padding: 16px 0;">No F1 data available.</p>`;
       } else {
-        // Football Leagues Routing: EPL, Champions League, FA Cup, Carabao Cup
-        const compMap = {
-          epl: 'PL',
-          ucl: 'CL',
-          facup: 'FAC',
-          carabao: 'ELC'
-        };
+        const compMap = { epl: 'PL', ucl: 'CL', facup: 'FAC', carabao: 'ELC' };
         const compCode = compMap[currentView] || 'PL';
-        
-        const liveMatches = await fetchFootballMatches(compCode, currentRound === 0 ? null : currentRound);
-        const standings = compCode === 'PL' || compCode === 'CL' ? await fetchFootballStandings(compCode) : null;
+        const matches = await fetchFootballMatches(compCode);
 
-        statusInd.textContent = apiKey ? (liveMatches ? "● Football-Data API Active" : "● Syncing...") : "● API Key Needed";
-        label.textContent = liveMatches ? `Matchday ${liveMatches.matchday}` : `${currentView.toUpperCase()}`;
+        label.textContent = currentView.toUpperCase();
+        statusInd.textContent = matches ? "● Proxy Live" : (proxyUrl ? "● Proxy Error" : "● Worker URL Needed");
 
         container.innerHTML = `
-          ${!apiKey ? `
+          ${!proxyUrl ? `
             <div style="background: #fff8e1; border: 1px solid var(--border-dark); padding: 12px; margin-bottom: 16px; font-size: 12px;">
-              <strong>Key Required:</strong> Paste your free API key from Football-Data.org in the top header box to enable live fixtures, scores, and standings for ${currentView.toUpperCase()}.
+              <strong>Worker Setup Needed:</strong> Enter your Cloudflare Worker proxy URL in the header box above to enable live football data.
             </div>
           ` : ''}
 
-          ${liveMatches ? `
-            <div class="section-title">${currentView.toUpperCase()} FIXTURES (MATCHDAY ${liveMatches.matchday})</div>
-            ${liveMatches.matches.map(m => `
+          ${matches ? `
+            <div class="section-title">${currentView.toUpperCase()} FIXTURES</div>
+            ${matches.map(m => `
               <div class="match-card">
                 <div class="match-teams">${m.home} vs ${m.away}</div>
                 <div class="match-meta">
                   <span class="match-score">${m.score}</span>
-                  <span class="badge ${m.status === 'LIVE' ? 'badge-live' : (m.status === 'FT' ? 'badge-ft' : 'badge-upcoming')}">
-                    ${m.status === 'LIVE' ? `● ${m.time}` : m.time}
-                  </span>
+                  <span class="badge ${m.status === 'LIVE' ? 'badge-live' : (m.status === 'FT' ? 'badge-ft' : 'badge-upcoming')}">${m.status}</span>
                 </div>
               </div>
             `).join('')}
-          ` : ''}
-
-          ${standings ? `
-            <div class="section-title">${currentView.toUpperCase()} STANDINGS TABLE</div>
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>POS</th>
-                  <th>CLUB</th>
-                  <th class="text-center">P</th>
-                  <th class="text-center">W</th>
-                  <th class="text-center">D</th>
-                  <th class="text-center">L</th>
-                  <th class="text-center">GD</th>
-                  <th class="text-right">PTS</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${standings.map(s => `
-                  <tr>
-                    <td class="highlight-pos">${s.pos}</td>
-                    <td><strong>${s.team}</strong></td>
-                    <td class="text-center">${s.p}</td>
-                    <td class="text-center">${s.w}</td>
-                    <td class="text-center">${s.d}</td>
-                    <td class="text-center">${s.l}</td>
-                    <td class="text-center">${s.gd > 0 ? `+${s.gd}` : s.gd}</td>
-                    <td class="text-right"><strong>${s.pts}</strong></td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          ` : ''}
+          ` : `<p style="padding: 16px 0;">No match data returned.</p>`}
         `;
       }
     }
 
-    // Initial Load
     render();
   </script>
 </body>
