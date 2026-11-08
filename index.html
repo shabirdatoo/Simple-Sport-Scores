@@ -3,9 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="version" content="1.5.0">
-  <title>Simple Sports Scores (v1.5.0)</title>
+  <meta name="version" content="1.6.0">
+  <title>Simple Sports Scores (v1.6.0)</title>
   <style>
+    /* ==========================================================================
+       SIMPLE SPORTS SCORES (v1.6.0) - BLACK & WHITE MONOSPACED STYLING
+       Primary Accent Colors: 
+       - Green (#00aa44): Live status, winners, FT
+       - Blue  (#0066cc): Links, league tags, active tabs
+       - Red   (#cc0000): F1 indicators, badges, highlights
+       ========================================================================== */
     :root {
       --bg: #ffffff;
       --text: #111111;
@@ -29,6 +36,9 @@
       max-width: 900px;
       margin: 0 auto;
     }
+
+    a { color: var(--accent-blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
 
     header {
       border-bottom: 2px solid var(--border-dark);
@@ -97,6 +107,8 @@
       padding: 2px 8px;
       cursor: pointer;
     }
+
+    .round-btn:hover { border-color: var(--border-dark); background: #f0f0f0; }
 
     .badge {
       font-size: 11px;
@@ -186,13 +198,13 @@
 
   <footer>
     <div>Simple Sports Scores</div>
-    <div>v1.5.0</div>
+    <div>v1.6.0</div>
   </footer>
 
   <script>
-    const APP_VERSION = '1.5.0';
+    const APP_VERSION = '1.6.0';
     let currentView = 'today';
-    let currentRound = 0;
+    let currentMatchday = 0; // 0 = automatic current matchday
     let proxyUrl = localStorage.getItem('sss_proxy_url') || '';
 
     if (proxyUrl) {
@@ -205,7 +217,12 @@
       render();
     }
 
-    // --- F1 DIRECT API (NO PROXY NEEDED) ---
+    function getTodayISO() {
+      const today = new Date();
+      return today.toISOString().split('T')[0];
+    }
+
+    // --- F1 API FETCH (KEYLESS) ---
     async function fetchF1Data() {
       try {
         const res = await fetch('https://api.jolpica.net/f1/current/last/results.json');
@@ -215,6 +232,7 @@
         return {
           title: race.raceName,
           circuit: race.Circuit.circuitName,
+          date: race.date,
           results: race.Results.map(r => ({
             pos: r.position,
             driver: `${r.Driver.givenName} ${r.Driver.familyName}`,
@@ -228,19 +246,58 @@
       }
     }
 
-    // --- FOOTBALL PROXY API ---
-    async function fetchFootballMatches(comp) {
+    // --- FOOTBALL PROXY API FETCHERS ---
+    async function fetchTodayFootballMatches() {
       if (!proxyUrl) return null;
       try {
-        const res = await fetch(`${proxyUrl}?comp=${comp}&type=matches`);
+        const todayStr = getTodayISO();
+        const res = await fetch(`${proxyUrl}?dateFrom=${todayStr}&dateTo=${todayStr}`);
         if (!res.ok) return null;
         const data = await res.json();
+        if (!data.matches) return [];
+
         return data.matches.map(m => ({
+          competition: m.competition.shortName || m.competition.name,
           home: m.homeTeam.shortName || m.homeTeam.name,
           away: m.awayTeam.shortName || m.awayTeam.name,
-          score: (m.status === 'FINISHED' || m.status === 'IN_PLAY') ? `${m.score.fullTime.home} - ${m.score.fullTime.away}` : 'vs',
-          status: m.status === 'IN_PLAY' ? 'LIVE' : (m.status === 'FINISHED' ? 'FT' : 'UPCOMING')
+          score: (m.status === 'FINISHED' || m.status === 'IN_PLAY' || m.status === 'PAUSED') 
+            ? `${m.score.fullTime.home ?? 0} - ${m.score.fullTime.away ?? 0}` 
+            : 'vs',
+          status: m.status === 'IN_PLAY' ? 'LIVE' : (m.status === 'FINISHED' ? 'FT' : 'UPCOMING'),
+          time: m.status === 'IN_PLAY' ? 'LIVE' : new Date(m.utcDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }));
+      } catch (e) {
+        return null;
+      }
+    }
+
+    async function fetchCompetitionMatches(comp, matchday) {
+      if (!proxyUrl) return null;
+      try {
+        let url = `${proxyUrl}?comp=${comp}&type=matches`;
+        if (matchday && matchday > 0) {
+          url += `&matchday=${matchday}`;
+        }
+
+        const res = await fetch(url);
+        if (!res.ok) return null;
+        const data = await res.json();
+        if (!data.matches) return null;
+
+        // Group by matchday if matchday parameter wasn't passed
+        const activeMatchday = matchday > 0 ? matchday : (data.filters.matchday || data.matches[0]?.matchday || 1);
+        const filteredMatches = data.matches.filter(m => m.matchday === activeMatchday);
+
+        return {
+          matchday: activeMatchday,
+          matches: (filteredMatches.length > 0 ? filteredMatches : data.matches.slice(0, 10)).map(m => ({
+            home: m.homeTeam.shortName || m.homeTeam.name,
+            away: m.awayTeam.shortName || m.awayTeam.name,
+            score: (m.status === 'FINISHED' || m.status === 'IN_PLAY') ? `${m.score.fullTime.home} - ${m.score.fullTime.away}` : 'vs',
+            status: m.status === 'IN_PLAY' ? 'LIVE' : (m.status === 'FINISHED' ? 'FT' : 'UPCOMING'),
+            time: m.status === 'IN_PLAY' ? 'LIVE' : new Date(m.utcDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          }))
+        };
       } catch (e) {
         return null;
       }
@@ -248,13 +305,15 @@
 
     function switchView(view, evt) {
       currentView = view;
+      currentMatchday = 0;
       document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
       if (evt) evt.target.classList.add('active');
       render();
     }
 
     function changeRound(delta) {
-      currentRound += delta;
+      currentMatchday += delta;
+      if (currentMatchday < 1) currentMatchday = 1;
       render();
     }
 
@@ -263,9 +322,47 @@
       const label = document.getElementById('currentRoundLabel');
       const statusInd = document.getElementById('statusIndicator');
 
-      container.innerHTML = `<div style="padding: 24px 0; font-weight: bold; color: #666666;">SYNCING...</div>`;
+      container.innerHTML = `<div style="padding: 24px 0; font-weight: bold; color: #666666;">FETCHING DATA...</div>`;
 
-      if (currentView === 'f1') {
+      if (currentView === 'today') {
+        const todayDateStr = getTodayISO();
+        label.textContent = `Today (${todayDateStr})`;
+        statusInd.textContent = proxyUrl ? "● Proxy Active" : "● Worker URL Needed";
+
+        const todayMatches = await fetchTodayFootballMatches();
+        const f1 = await fetchF1Data();
+
+        container.innerHTML = `
+          <div class="section-title">TODAY'S FIXTURES (${todayDateStr})</div>
+          
+          ${f1 && f1.date === todayDateStr ? `
+            <div class="match-card" onclick="switchView('f1', null)" style="cursor: pointer;">
+              <div>
+                <span class="badge badge-f1" style="margin-right: 8px;">FORMULA 1</span>
+                <span class="match-teams">${f1.title} (${f1.circuit})</span>
+              </div>
+              <div class="match-meta">
+                <span class="badge badge-live">RACE DAY</span>
+              </div>
+            </div>
+          ` : ''}
+
+          ${todayMatches && todayMatches.length > 0 ? todayMatches.map(m => `
+            <div class="match-card">
+              <div>
+                <span class="badge badge-ft" style="margin-right: 8px;">${m.competition}</span>
+                <span class="match-teams">${m.home} vs ${m.away}</span>
+              </div>
+              <div class="match-meta">
+                <span class="match-score">${m.score}</span>
+                <span class="badge ${m.status === 'LIVE' ? 'badge-live' : (m.status === 'FT' ? 'badge-ft' : 'badge-upcoming')}">${m.status === 'LIVE' ? '● LIVE' : m.time}</span>
+              </div>
+            </div>
+          `).join('') : `
+            <p style="padding: 16px 0; color: #666666;">No football matches scheduled for today (${todayDateStr}). Use the navigation bar above to view competition matchdays.</p>
+          `}
+        `;
+      } else if (currentView === 'f1') {
         const f1 = await fetchF1Data();
         label.textContent = "Latest Grand Prix";
         statusInd.textContent = "● Jolpica F1 API";
@@ -282,10 +379,10 @@
       } else {
         const compMap = { epl: 'PL', ucl: 'CL', facup: 'FAC', carabao: 'ELC' };
         const compCode = compMap[currentView] || 'PL';
-        const matches = await fetchFootballMatches(compCode);
+        const data = await fetchCompetitionMatches(compCode, currentMatchday);
 
-        label.textContent = currentView.toUpperCase();
-        statusInd.textContent = matches ? "● Proxy Live" : (proxyUrl ? "● Proxy Error" : "● Worker URL Needed");
+        label.textContent = data ? `Matchday ${data.matchday}` : `${currentView.toUpperCase()}`;
+        statusInd.textContent = data ? "● Proxy Active" : (proxyUrl ? "● Proxy Error" : "● Worker URL Needed");
 
         container.innerHTML = `
           ${!proxyUrl ? `
@@ -294,9 +391,9 @@
             </div>
           ` : ''}
 
-          ${matches ? `
-            <div class="section-title">${currentView.toUpperCase()} FIXTURES</div>
-            ${matches.map(m => `
+          ${data && data.matches ? `
+            <div class="section-title">${currentView.toUpperCase()} — MATCHDAY ${data.matchday}</div>
+            ${data.matches.map(m => `
               <div class="match-card">
                 <div class="match-teams">${m.home} vs ${m.away}</div>
                 <div class="match-meta">
@@ -305,7 +402,7 @@
                 </div>
               </div>
             `).join('')}
-          ` : `<p style="padding: 16px 0;">No match data returned.</p>`}
+          ` : `<p style="padding: 16px 0;">No match data returned for this matchday.</p>`}
         `;
       }
     }
